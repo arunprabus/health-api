@@ -16,6 +16,12 @@ COPY . .
 # Create uploads directory
 RUN mkdir -p uploads
 
+# Set environment variables
+ENV NODE_ENV=production
+ENV DYNAMODB_PROFILES_TABLE=health-profiles-prod
+ENV DYNAMODB_UPLOADS_TABLE=health-profiles-prod-uploads
+ENV AWS_REGION=us-east-1
+
 # Expose port
 EXPOSE 3001
 
