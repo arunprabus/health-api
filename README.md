@@ -1,62 +1,108 @@
-# Health API
+# health-api
 
-A Node.js + Express API for health profile management with file upload capabilities.
+A Node.js + Express backend service that powers the health-related features of a larger full-stack application. This service is designed to be containerized and easily deployable in multiple environments (Dev, QA, Prod) and supports runtime configuration.
 
-## Features
+---
 
-- **Profile Management**: CRUD operations for health profiles
-- **File Upload**: PDF upload to AWS S3
-- **Validation**: Input validation with Joi
-- **Security**: Helmet.js security headers and CORS
-- **Health Checks**: Built-in monitoring endpoints
+## 🚀 Features
 
-## API Endpoints
+- 🧠 RESTful API built with **Express.js**
+- 🛡️ Middleware support for JSON parsing, CORS, etc.
+- 🐳 Dockerized for consistent deployment
+- 🔧 Environment-specific config via environment variables
+- ✅ Built with future integration in mind (e.g., DB, Auth, Storage)
 
-### Profiles
-- `GET /api/profile` - Get all profiles
-- `GET /api/profile/:id` - Get specific profile
-- `POST /api/profile` - Create new profile
-- `PUT /api/profile/:id` - Update profile
-- `DELETE /api/profile/:id` - Delete profile
+---
 
-### File Upload
-- `POST /api/upload` - Upload PDF file to S3
+## 🛠️ Tech Stack
 
-### System
-- `GET /health` - Health check endpoint
-- `GET /` - API information
+| Layer            | Technology        |
+|------------------|-------------------|
+| Backend Runtime  | Node.js 20.19.1   |
+| Framework        | Express.js        |
+| Language         | JavaScript        |
+| Container Tool   | Docker            |
+| Config Mgmt      | dotenv / ENV vars |
 
-## Quick Start
+---
 
-### Development
+## 📁 Project Structure
+
+```
+health-api/
+├── src/
+│   ├── index.js              # Entry point
+│   └── routes/               # API route definitions
+├── .dockerignore
+├── Dockerfile                # Production-ready container
+├── package.json
+└── README.md
+```
+
+---
+
+## 🔧 Configuration
+
+The app uses **environment variables** for configuration. Common variables include:
+
+```env
+PORT=8080
+API_BASE_PATH=/api
+NODE_ENV=production
+```
+
+For local development, create a `.env` file in the root:
+
+```
+cp .env.example .env
+```
+
+---
+
+## 🐳 Docker Usage
+
+### 1. Build the Docker image
+
+```bash
+docker build -t health-api .
+```
+
+### 2. Run the container
+
+```bash
+docker run -d -p 8080:8080   -e PORT=8080   -e API_BASE_PATH=/api   health-api
+```
+
+---
+
+## 🧪 Local Development
+
+Install dependencies and start the server:
+
 ```bash
 npm install
-cp .env.example .env
 npm run dev
 ```
 
-### Docker
-```bash
-docker build -t health-api .
-docker run -p 3001:3001 \
-  -e NODE_ENV=development \
-  -e AWS_ACCESS_KEY_ID=your_key \
-  -e AWS_SECRET_ACCESS_KEY=your_secret \
-  health-api
-```
+This uses `nodemon` for auto-restart on file changes.
 
-### Environment Variables
+---
 
-- `PORT`: Server port (default: 3001)
-- `NODE_ENV`: Environment (development/production)
-- `FRONTEND_URL`: Allowed frontend origin
-- `AWS_ACCESS_KEY_ID`: AWS access key
-- `AWS_SECRET_ACCESS_KEY`: AWS secret key
-- `AWS_REGION`: AWS region
-- `S3_BUCKET`: S3 bucket name
-- `DB_URL`: Database connection string
-- `JWT_SECRET`: JWT signing secret
+## 🔌 API Structure
 
-## CI/CD
+- `GET /api/health` – Basic health check endpoint
+- Add your domain-specific endpoints under `src/routes/`
 
-GitHub Actions automatically builds and pushes container images to GitHub Container Registry on push to main/develop branches.
+---
+
+## 🌐 Deployment Notes
+
+- Built for integration with frontend apps and orchestration tools (Docker Compose, Kubernetes)
+- Can be configured to connect to external services (DB, auth, etc.)
+
+---
+
+## 📜 License
+
+MIT License  
+© 2025 [@arunprabus](https://github.com/arunprabus)
