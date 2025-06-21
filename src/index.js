@@ -2,14 +2,15 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 
+// Configure environment variables first, so they're available to all modules
+dotenv.config();
+
 import authRoutes from './routes/auth.routes.js';
 import profileRoutes from './routes/profile.routes.js';
 import fileRoutes from './routes/file.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import pool from './utils/db.js';
 import runMigrations from './utils/run-migrations.js';
-
-dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());

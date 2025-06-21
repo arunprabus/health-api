@@ -23,9 +23,9 @@ export const signup = async (req, res, next) => {
 
             const userId = userResult.rows[0].id;
 
-            // Create an initial profile for the user with the same ID
+            // Create an initial profile for the user with user_id as foreign key
             await pool.query(
-                'INSERT INTO profiles (id, name) VALUES ($1, $2)',
+                'INSERT INTO profiles (user_id, name) VALUES ($1, $2)',
                 [userId, email.split('@')[0]] // Using part of email as initial name
             );
 
