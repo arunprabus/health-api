@@ -1,3 +1,5 @@
+A structured Node.js + Express REST API with clean architecture, ready for scalable development.
+
 # health-api
 
 A Node.js + Express backend service that powers the health-related features of a larger full-stack application. This service is designed to be containerized and easily deployable in multiple environments (Dev, QA, Prod) and supports runtime configuration.
@@ -106,3 +108,4 @@ This uses `nodemon` for auto-restart on file changes.
 
 MIT License  
 © 2025 [@arunprabus](https://github.com/arunprabus)
+>>>>>>> 48a6b2538f0aaef9d84d617e1af3a3e26762043b
