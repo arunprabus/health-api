@@ -11,15 +11,38 @@ export const signup = async (req, res, next) => {
             return res.status(400).json({ error: 'Email already registered' });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const result = await pool.query(
-            'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email, created_at',
-            [email, hashedPassword]
-        );
+        // Begin transaction
+        await pool.query('BEGIN');
 
-        res.status(201).json({ message: 'Signup successful', user: result.rows[0] });
+        try {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            const userResult = await pool.query(
+                'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email, created_at',
+                [email, hashedPassword]
+            );
+
+            const userId = userResult.rows[0].id;
+
+            // Create an initial profile for the user with the same ID
+            await pool.query(
+                'INSERT INTO profiles (id, name) VALUES ($1, $2)',
+                [userId, email.split('@')[0]] // Using part of email as initial name
+            );
+
+            await pool.query('COMMIT');
+
+            res.status(201).json({ message: 'Signup successful', user: userResult.rows[0] });
+        } catch (error) {
+            await pool.query('ROLLBACK');
+            console.error('Transaction error:', error);
+            throw error;
+        }
     } catch (error) {
-        next(error);
+        console.error('Authentication error:', error);
+        res.status(500).json({
+            error: 'Authentication failed. Please check server logs for details.',
+            message: error.message
+        });
     }
 };
 
