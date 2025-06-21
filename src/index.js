@@ -12,12 +12,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use('/auth', authRoutes);
-app.use('/profiles', profileRoutes);
-app.use('/files', fileRoutes);
+// ✅ Use base path everywhere
+const basePath = process.env.API_BASE_PATH || '/api';
+
+// ✅ Register routes with basePath
+app.use(`${basePath}/auth`, authRoutes);
+app.use(`${basePath}/profiles`, profileRoutes);
+app.use(`${basePath}/files`, fileRoutes);
+
+// ✅ Error handling middleware (should be after all routes)
 app.use(errorHandler);
 
+// ✅ Start server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`🚀 Server running on port ${PORT} with basePath '${basePath}'`);
 });

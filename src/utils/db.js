@@ -1,15 +1,19 @@
-const { Pool } = require('pg');
-require('dotenv').config();
+import pkg from 'pg';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const { Pool } = pkg;
 
 const pool = new Pool({
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    database: process.env.DB_NAME,
     user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
     password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT,
     ssl: {
-        rejectUnauthorized: false, // accept RDS default cert
-    },
+        rejectUnauthorized: false // ✅ allows SSL without validating certificate (okay for dev)
+    }
 });
 
-module.exports = pool;
+export default pool;
