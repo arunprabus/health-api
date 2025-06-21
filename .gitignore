@@ -1,0 +1,50 @@
+# Node modules
+node_modules/
+npm-debug.log*
+
+# Environment config
+.env
+.env.*.local
+
+# Logs
+logs/
+*.log
+*.log.*
+debug.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Editor settings
+.idea/           # WebStorm/IntelliJ
+.vscode/
+
+# OS-specific
+*.swp
+*.swo
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Build artifacts
+dist/
+build/
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+
+# Runtime config (if injected dynamically)
+runtime-config.json
+
+# Misc
+*.tgz
+*.gz
+*.zip
+*.bak
+*.tmp
+
+# Idea
+.idea
