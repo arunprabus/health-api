@@ -1,155 +1,79 @@
-import express from 'express';
-import { v4 as uuidv4 } from 'uuid';
-import { validateProfile } from '../middleware/validation.js';
-import { ProfileService } from '../data/dynamodb.js';
+const express = require('express');
+const { v4: uuidv4 } = require('uuid');
+const { validateProfile } = require('../middleware/validation.js');
+const { ProfileService } = require('../data/dynamodb.js');
 
 const router = express.Router();
 
-// GET /api/profile - Get all profiles
+// GET /profiles
 router.get('/', async (req, res) => {
   try {
     const profiles = await ProfileService.getAllProfiles();
-    
-    res.json({
-      success: true,
-      data: profiles,
-      count: profiles.length
-    });
+    res.json({ success: true, data: profiles, count: profiles.length });
   } catch (error) {
     console.error('Error fetching profiles:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to retrieve profiles'
-    });
+    res.status(500).json({ success: false, error: 'Failed to retrieve profiles' });
   }
 });
 
-// GET /api/profile/:id - Get specific profile
+// GET /profiles/:id
 router.get('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const profile = await ProfileService.getProfileById(id);
-
-    if (!profile) {
-      return res.status(404).json({
-        success: false,
-        error: 'Profile not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: profile
-    });
+    const profile = await ProfileService.getProfileById(req.params.id);
+    if (!profile) return res.status(404).json({ success: false, error: 'Profile not found' });
+    res.json({ success: true, data: profile });
   } catch (error) {
     console.error('Error fetching profile:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to retrieve profile'
-    });
+    res.status(500).json({ success: false, error: 'Failed to retrieve profile' });
   }
 });
 
-// POST /api/profile - Create new profile
+// POST /profiles
 router.post('/', validateProfile, async (req, res) => {
   try {
-    const { name, bloodGroup, insurance, email, idProof } = req.body;
-    
-    const profileId = uuidv4();
     const profileData = {
-      id: profileId,
-      name,
-      bloodGroup,
-      insurance,
-      email,
-      idProof,
+      id: uuidv4(),
+      ...req.body,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-
     const newProfile = await ProfileService.createProfile(profileData);
-
-    res.status(201).json({
-      success: true,
-      data: newProfile,
-      message: 'Profile created successfully'
-    });
+    res.status(201).json({ success: true, data: newProfile, message: 'Profile created successfully' });
   } catch (error) {
     console.error('Error creating profile:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to create profile'
-    });
+    res.status(500).json({ success: false, error: 'Failed to create profile' });
   }
 });
 
-// PUT /api/profile/:id - Update profile
+// PUT /profiles/:id
 router.put('/:id', validateProfile, async (req, res) => {
   try {
-    const { id } = req.params;
-    const { name, bloodGroup, insurance, email, idProof } = req.body;
+    const existing = await ProfileService.getProfileById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, error: 'Profile not found' });
 
-    // Check if profile exists
-    const existingProfile = await ProfileService.getProfileById(id);
-    if (!existingProfile) {
-      return res.status(404).json({
-        success: false,
-        error: 'Profile not found'
-      });
-    }
-
-    const updateData = {
-      name,
-      bloodGroup,
-      insurance,
-      email,
-      idProof,
+    const updated = await ProfileService.updateProfile(req.params.id, {
+      ...req.body,
       updatedAt: new Date().toISOString()
-    };
-
-    const updatedProfile = await ProfileService.updateProfile(id, updateData);
-
-    res.json({
-      success: true,
-      data: updatedProfile,
-      message: 'Profile updated successfully'
     });
+    res.json({ success: true, data: updated, message: 'Profile updated successfully' });
   } catch (error) {
     console.error('Error updating profile:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to update profile'
-    });
+    res.status(500).json({ success: false, error: 'Failed to update profile' });
   }
 });
 
-// DELETE /api/profile/:id - Delete profile
+// DELETE /profiles/:id
 router.delete('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
+    const existing = await ProfileService.getProfileById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, error: 'Profile not found' });
 
-    // Check if profile exists
-    const existingProfile = await ProfileService.getProfileById(id);
-    if (!existingProfile) {
-      return res.status(404).json({
-        success: false,
-        error: 'Profile not found'
-      });
-    }
-
-    await ProfileService.deleteProfile(id);
-
-    res.json({
-      success: true,
-      message: 'Profile deleted successfully'
-    });
+    await ProfileService.deleteProfile(req.params.id);
+    res.json({ success: true, message: 'Profile deleted successfully' });
   } catch (error) {
     console.error('Error deleting profile:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to delete profile'
-    });
+    res.status(500).json({ success: false, error: 'Failed to delete profile' });
   }
 });
 
-export default router;
+module.exports = router;

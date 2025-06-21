@@ -1,23 +1,21 @@
-import Joi from 'joi';
+// validation.js
+const Joi = require('joi');
 
-const profileSchema = Joi.object({
-  name: Joi.string().min(2).max(100).required(),
-  bloodGroup: Joi.string().valid('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-').required(),
-  insurance: Joi.string().min(2).max(100).required(),
-  email: Joi.string().email().required(),
-  idProof: Joi.string().min(5).max(50).required()
-});
+const validateProfile = (req, res, next) => {
+  const schema = Joi.object({
+    name: Joi.string().required(),
+    bloodGroup: Joi.string().required(),
+    insurance: Joi.string().required(),
+    email: Joi.string().email().required(),
+    idProof: Joi.string().required()
+  });
 
-export const validateProfile = (req, res, next) => {
-  const { error } = profileSchema.validate(req.body);
-  
+  const { error } = schema.validate(req.body);
   if (error) {
-    return res.status(400).json({
-      success: false,
-      error: 'Validation failed',
-      details: error.details.map(detail => detail.message)
-    });
+    return res.status(400).json({ success: false, error: error.details[0].message });
   }
-  
+
   next();
 };
+
+module.exports = { validateProfile };
