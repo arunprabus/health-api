@@ -49,3 +49,4 @@ runtime-config.json
 # Idea
 .idea
 .env.docker
+/backup
