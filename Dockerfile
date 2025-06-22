@@ -1,5 +1,5 @@
-# Use Node.js 20 LTS
-FROM node:20.19.1-alpine
+# Use Node.js 18 Alpine for smaller image size
+FROM node:18-alpine
 
 # Set working directory
 WORKDIR /app
@@ -11,22 +11,22 @@ COPY package*.json ./
 RUN npm ci --only=production
 
 # Copy source code
-COPY . .
+COPY src/ ./src/
 
-# Create uploads directory
-RUN mkdir -p uploads
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
 
-# Set environment variables
-ENV NODE_ENV=production
-ENV PORT=8080
-ENV API_BASE_PATH=/api
+# Change ownership of app directory
+RUN chown -R nodejs:nodejs /app
+USER nodejs
 
 # Expose port
 EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8080/api/health || exit 1
+  CMD node -e "require('http').get('http://localhost:8080/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # Start the application
-CMD ["npm", "start"]
+CMD ["node", "src/index.js"]
