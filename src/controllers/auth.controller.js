@@ -16,17 +16,18 @@ export const signup = async (req, res, next) => {
 
         try {
             const hashedPassword = await bcrypt.hash(password, 10);
+
+            // Create user
             const userResult = await pool.query(
                 'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email, created_at',
                 [email, hashedPassword]
             );
-
             const userId = userResult.rows[0].id;
 
-            // Create an initial profile for the user with user_id as foreign key
+            // Create initial profile using same UUID as users.id
             await pool.query(
-                'INSERT INTO profiles (user_id, name) VALUES ($1, $2)',
-                [userId, email.split('@')[0]] // Using part of email as initial name
+                'INSERT INTO profiles (id, name) VALUES ($1, $2)',
+                [userId, email.split('@')[0]]  // Example: name = "john" if email is "john@example.com"
             );
 
             await pool.query('COMMIT');
@@ -62,8 +63,14 @@ export const login = async (req, res, next) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        // Generate JWT (we'll improve this later)
-        res.json({ message: 'Login successful', user: { id: user.id, email: user.email } });
+        // Simple token (userId for now, upgrade to JWT later)
+        const token = user.id;
+        
+        res.json({ 
+            message: 'Login successful', 
+            user: { id: user.id, email: user.email },
+            token: token
+        });
     } catch (error) {
         next(error);
     }

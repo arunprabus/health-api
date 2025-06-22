@@ -7,67 +7,44 @@ async function runMigrations() {
         // Create extension for UUID generation
         await pool.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
 
-        // Create users table
+        // Drop all existing tables and constraints to start fresh
         await pool.query(`
-            CREATE TABLE IF NOT EXISTS users (
-                                                 id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                email VARCHAR(255) UNIQUE NOT NULL,
-                password VARCHAR(255) NOT NULL,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-                )
+            DROP TABLE IF EXISTS profiles CASCADE;
+            DROP TABLE IF EXISTS users CASCADE;
+            DROP TABLE IF EXISTS cognito_users CASCADE;
         `);
 
-        // Create profiles table
+        // Create users table for local auth
         await pool.query(`
-            CREATE TABLE IF NOT EXISTS profiles (
-                                                    id SERIAL PRIMARY KEY,
-                                                    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            CREATE TABLE users (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                email VARCHAR(255) UNIQUE NOT NULL,
+                password VARCHAR(255) NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Create cognito_users table for Cognito users
+        await pool.query(`
+            CREATE TABLE cognito_users (
+                id UUID PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                username VARCHAR(255),
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Create profiles table with NO foreign key constraints
+        await pool.query(`
+            CREATE TABLE profiles (
+                id UUID PRIMARY KEY,
                 name VARCHAR(255),
                 blood_group VARCHAR(10),
                 insurance_provider VARCHAR(255),
                 insurance_number VARCHAR(255),
                 pdf_url TEXT,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(user_id)
-                )
-        `);
-
-        // Create function to update timestamps
-        await pool.query(`
-            CREATE OR REPLACE FUNCTION trigger_set_timestamp()
-            RETURNS TRIGGER AS $$
-            BEGIN
-                NEW.updated_at = NOW();
-                RETURN NEW;
-            END;
-            $$ LANGUAGE plpgsql;
-        `);
-
-        // Create triggers (idempotent pattern)
-        await pool.query(`
-            DO $$
-            BEGIN
-                IF NOT EXISTS (
-                    SELECT 1 FROM pg_trigger WHERE tgname = 'set_timestamp_users'
-                ) THEN
-                    CREATE TRIGGER set_timestamp_users
-                    BEFORE UPDATE ON users
-                    FOR EACH ROW
-                    EXECUTE PROCEDURE trigger_set_timestamp();
-                END IF;
-
-                IF NOT EXISTS (
-                    SELECT 1 FROM pg_trigger WHERE tgname = 'set_timestamp_profiles'
-                ) THEN
-                    CREATE TRIGGER set_timestamp_profiles
-                    BEFORE UPDATE ON profiles
-                    FOR EACH ROW
-                    EXECUTE PROCEDURE trigger_set_timestamp();
-                END IF;
-            END
-            $$;
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )
         `);
 
         console.log('✅ Database migrations completed successfully!');

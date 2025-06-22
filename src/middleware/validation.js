@@ -1,13 +1,13 @@
 // validation.js
-const Joi = require('joi');
+import Joi from 'joi';
 
 const validateProfile = (req, res, next) => {
   const schema = Joi.object({
     name: Joi.string().required(),
-    bloodGroup: Joi.string().required(),
-    insurance: Joi.string().required(),
-    email: Joi.string().email().required(),
-    idProof: Joi.string().required()
+    blood_group: Joi.string().required(),
+    insurance_provider: Joi.string().required(),
+    insurance_number: Joi.string().allow(null, ''),
+    pdf_url: Joi.string().allow(null, '')
   });
 
   const { error } = schema.validate(req.body);
@@ -18,4 +18,4 @@ const validateProfile = (req, res, next) => {
   next();
 };
 
-module.exports = { validateProfile };
+export { validateProfile };

@@ -29,7 +29,7 @@ app.get(`${basePath}/health`, (req, res) => {
 
 // ✅ Register routes with basePath
 app.use(`${basePath}/auth`, authRoutes);
-app.use(`${basePath}/profiles`, profileRoutes);
+app.use(`${basePath}/profile`, profileRoutes);
 app.use(`${basePath}/files`, fileRoutes);
 
 // ✅ Error handling middleware (should be after all routes)

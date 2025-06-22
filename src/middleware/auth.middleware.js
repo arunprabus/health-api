@@ -6,13 +6,16 @@ import pool from '../utils/db.js';
  */
 export const authenticateUser = async (req, res, next) => {
     try {
-        // For now, we'll just check if the user ID is valid
-        // In a real app, you would verify a JWT token here
-        const { userId } = req.headers;
+        const { authorization } = req.headers;
 
-        if (!userId) {
+        if (!authorization || !authorization.startsWith('Bearer ')) {
             return res.status(401).json({ error: 'Authentication required' });
         }
+
+        const token = authorization.split(' ')[1];
+        
+        // Simple token format: userId (in production, use JWT)
+        const userId = token;
 
         const result = await pool.query('SELECT id FROM users WHERE id = $1', [userId]);
 
@@ -20,7 +23,6 @@ export const authenticateUser = async (req, res, next) => {
             return res.status(401).json({ error: 'Invalid user' });
         }
 
-        // Store user info in request object for later use
         req.user = { id: userId };
         next();
     } catch (error) {
