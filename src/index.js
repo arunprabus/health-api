@@ -7,7 +7,6 @@ dotenv.config();
 
 import authRoutes from './routes/auth.routes.js';
 import profileRoutes from './routes/profile.routes.js';
-import fileRoutes from './routes/file.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import pool from './utils/db.js';
 import runMigrations from './utils/run-migrations.js';
@@ -30,7 +29,6 @@ app.get(`${basePath}/health`, (req, res) => {
 // ✅ Register routes with basePath
 app.use(`${basePath}/auth`, authRoutes);
 app.use(`${basePath}/profile`, profileRoutes);
-app.use(`${basePath}/files`, fileRoutes);
 
 // ✅ Error handling middleware (should be after all routes)
 app.use(errorHandler);

@@ -12,16 +12,10 @@ async function runMigrations() {
             DROP TABLE IF EXISTS profiles CASCADE;
             DROP TABLE IF EXISTS users CASCADE;
             DROP TABLE IF EXISTS cognito_users CASCADE;
-        `);
-
-        // Create users table for local auth
-        await pool.query(`
-            CREATE TABLE users (
-                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                email VARCHAR(255) UNIQUE NOT NULL,
-                password VARCHAR(255) NOT NULL,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-            )
+            DROP SCHEMA IF EXISTS public CASCADE;
+            CREATE SCHEMA public;
+            GRANT ALL ON SCHEMA public TO postgres;
+            GRANT ALL ON SCHEMA public TO public;
         `);
 
         // Create cognito_users table for Cognito users

@@ -1,17 +1,13 @@
 // routes/profiles.routes.js
 import express from 'express';
 import pool from '../utils/db.js';
-import { authenticateUser } from '../middleware/auth.middleware.js';
 import { authenticateCognito } from '../middleware/cognito.middleware.js';
 import { validateProfile } from '../middleware/validation.js';
 
 const router = express.Router();
 
-// Choose auth method based on environment or header
-const authMiddleware = process.env.USE_COGNITO === 'true' ? authenticateCognito : authenticateUser;
-
-// 🔐 Require authentication for all profile routes
-router.use(authMiddleware);
+// 🔐 Require Cognito authentication for all profile routes
+router.use(authenticateCognito);
 
 // ✅ POST /api/profile - Create profile for new user
 router.post('/', validateProfile, async (req, res) => {

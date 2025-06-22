@@ -1,3 +1,0 @@
-exports.getStatus = () => {
-    return 'ok';
-};
