@@ -1,19 +1,29 @@
-import pkg from 'pg';
+// src/utils/db.js
+
+import { Pool } from 'pg';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const { Pool } = pkg;
-
+// Configure PostgreSQL connection pool
 const pool = new Pool({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT,
+    user: process.env.DB_USER || 'postgres',
+    host: process.env.DB_HOST || 'localhost',
+    database: process.env.DB_NAME || 'health_api',
+    password: process.env.DB_PASSWORD || 'postgres',
+    port: parseInt(process.env.DB_PORT, 10) || 5432,
     ssl: {
-        rejectUnauthorized: false // ✅ allows SSL without validating certificate (okay for dev)
-    }
+        rejectUnauthorized: false // For dev only. Remove in prod if using trusted certs.
+    },
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000
+});
+
+// Optional: Handle idle errors
+pool.on('error', (err) => {
+    console.error('Unexpected error on idle client', err);
+    process.exit(-1);
 });
 
 export default pool;

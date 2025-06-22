@@ -1,0 +1,87 @@
+### Health Check
+GET http://localhost:8080/api/health
+
+### Authentication
+
+# Signup
+POST http://localhost:8080/api/auth/signup
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "password": "Password123!"
+}
+
+### Login
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "password": "Password123!"
+}
+
+### Profiles
+
+# Get All Profiles
+GET http://localhost:8080/api/profiles
+
+# Get Profile by ID
+GET http://localhost:8080/api/profiles/f63182c0-ce01-4658-a2a1-d2d021a3d7fc
+
+# Create Profile (rarely needed as profiles are auto-created with users)
+POST http://localhost:8080/api/profiles
+Content-Type: application/json
+
+{
+  "user_id": "f63182c0-ce01-4658-a2a1-d2d021a3d7fc",
+  "name": "John Doe",
+  "blood_group": "O+",
+  "insurance_provider": "Health Insurance Co",
+  "insurance_number": "HIC123456789",
+  "pdf_url": "https://example.com/documents/john-doe-health.pdf"
+}
+
+# Update Profile (PUT method)
+PUT http://localhost:8080/api/profiles/f63182c0-ce01-4658-a2a1-d2d021a3d7fc
+Content-Type: application/json
+
+{
+  "blood_group": "AB+",
+  "insurance_provider": "New Health Insurance"
+}
+
+# Update Profile (POST method - alternative)
+POST http://localhost:8080/api/profiles/f63182c0-ce01-4658-a2a1-d2d021a3d7fc
+Content-Type: application/json
+
+{
+  "blood_group": "AB+",
+  "insurance_provider": "New Health Insurance"
+}
+
+# Delete Profile
+DELETE http://localhost:8080/api/profiles/f63182c0-ce01-4658-a2a1-d2d021a3d7fc
+
+### Files
+
+# Upload File (simulated without actual file)
+POST http://localhost:8080/api/files/upload
+Content-Type: application/json
+
+{
+  "profileId": "f63182c0-ce01-4658-a2a1-d2d021a3d7fc",
+  "fileName": "health_record.pdf",
+  "fileUrl": "https://example.com/documents/john-doe-health.pdf"
+}
+
+# Get File Information
+GET http://localhost:8080/api/files/document123
+
+# Delete File
+DELETE http://localhost:8080/api/files/document123
+Content-Type: application/json
+
+{
+  "profileId": "f63182c0-ce01-4658-a2a1-d2d021a3d7fc"
+}
