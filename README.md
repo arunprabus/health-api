@@ -1,111 +1,79 @@
-A structured Node.js + Express REST API with clean architecture, ready for scalable development.
+# Health API - Backend Microservice
 
-# health-api
+A Node.js REST API for health profile management with AWS Cognito authentication.
 
-A Node.js + Express backend service that powers the health-related features of a larger full-stack application. This service is designed to be containerized and easily deployable in multiple environments (Dev, QA, Prod) and supports runtime configuration.
+## Features
 
----
+- 🔐 AWS Cognito Authentication
+- 👤 User Profile Management (CRUD)
+- 🐳 Docker Support
+- ☸️ Kubernetes Ready
+- 🚀 CI/CD with GitHub Actions
 
-## 🚀 Features
+## API Endpoints
 
-- 🧠 RESTful API built with **Express.js**
-- 🛡️ Middleware support for JSON parsing, CORS, etc.
-- 🐳 Dockerized for consistent deployment
-- 🔧 Environment-specific config via environment variables
-- ✅ Built with future integration in mind (e.g., DB, Auth, Storage)
+- `POST /api/auth/signup` - User registration
+- `POST /api/auth/login` - User login
+- `GET /api/profile/` - Get user profile
+- `POST /api/profile/` - Create user profile
+- `PUT /api/profile/` - Update user profile
+- `GET /api/health` - Health check
 
----
+## Local Development
 
-## 🛠️ Tech Stack
+```bash
+# Install dependencies
+npm install
 
-| Layer            | Technology        |
-|------------------|-------------------|
-| Backend Runtime  | Node.js 20.19.1   |
-| Framework        | Express.js        |
-| Language         | JavaScript        |
-| Container Tool   | Docker            |
-| Config Mgmt      | dotenv / ENV vars |
+# Set environment variables
+cp .env.example .env
+# Edit .env with your values
 
----
+# Run locally
+npm run dev
 
-## 📁 Project Structure
-
-```
-health-api/
-├── src/
-│   ├── index.js              # Entry point
-│   └── routes/               # API route definitions
-├── .dockerignore
-├── Dockerfile                # Production-ready container
-├── package.json
-└── README.md
+# Run with Docker
+docker-compose up --build
 ```
 
----
-
-## 🔧 Configuration
-
-The app uses **environment variables** for configuration. Common variables include:
+## Environment Variables
 
 ```env
-PORT=8080
-API_BASE_PATH=/api
-NODE_ENV=production
+AWS_REGION=ap-south-1
+COGNITO_USER_POOL_ID=your_user_pool_id
+COGNITO_CLIENT_ID=your_client_id
+DB_HOST=your_db_host
+DB_PORT=5432
+DB_NAME=postgres
+DB_USER=your_db_user
+DB_PASSWORD=your_db_password
 ```
 
-For local development, create a `.env` file in the root:
+## Deployment
+
+This microservice deploys to an existing EKS cluster. Infrastructure is managed separately in the `health-api-infrastructure` repository.
+
+### Manual Deployment
+1. Go to Actions → "Build and Deploy to EKS"
+2. Click "Run workflow"
+3. Select environment (auto/dev/prod)
+
+### Environment URLs
+- **Production (master branch)**: `yourdomain.com`
+- **Development (feature branches)**: `branchname.yourdomain.com`
+
+## Architecture
 
 ```
-cp .env.example .env
+┌─────────────────┐    ┌──────────────┐    ┌─────────────┐
+│   AWS Cognito   │    │  Health API  │    │ PostgreSQL  │
+│ (Authentication)│◄──►│(Node.js/Express)│◄──►│ (Database)  │
+└─────────────────┘    └──────────────┘    └─────────────┘
 ```
 
----
+## Infrastructure
 
-## 🐳 Docker Usage
-
-### 1. Build the Docker image
-
-```bash
-docker build -t health-api .
-```
-
-### 2. Run the container
-
-```bash
-docker run -d -p 8080:8080   -e PORT=8080   -e API_BASE_PATH=/api   health-api
-```
-
----
-
-## 🧪 Local Development
-
-Install dependencies and start the server:
-
-```bash
-npm install
-npm run dev
-```
-
-This uses `nodemon` for auto-restart on file changes.
-
----
-
-## 🔌 API Structure
-
-- `GET /api/health` – Basic health check endpoint
-- Add your domain-specific endpoints under `src/routes/`
-
----
-
-## 🌐 Deployment Notes
-
-- Built for integration with frontend apps and orchestration tools (Docker Compose, Kubernetes)
-- Can be configured to connect to external services (DB, auth, etc.)
-
----
-
-## 📜 License
-
-MIT License  
-© 2025 [@arunprabus](https://github.com/arunprabus)
->>>>>>> 48a6b2538f0aaef9d84d617e1af3a3e26762043b
+Infrastructure components (EKS, VPC, ECR) are managed in a separate repository:
+- Repository: `health-api-infrastructure`
+- Technology: Terraform
+- Components: EKS Cluster, ECR, VPC, ALB
