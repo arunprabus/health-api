@@ -19,9 +19,33 @@ const resetDatabase = async () => {
         
         // 1. Clear database tables
         console.log('📊 Truncating database tables...');
-        await pool.query('TRUNCATE TABLE profiles RESTART IDENTITY CASCADE');
-        await pool.query('TRUNCATE TABLE cognito_users RESTART IDENTITY CASCADE');
-        console.log('✅ Database tables cleared');
+        
+        // Check if tables exist before truncating
+        const tablesResult = await pool.query(`
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_type = 'BASE TABLE'
+        `);
+        
+        const existingTables = tablesResult.rows.map(row => row.table_name);
+        console.log('Found tables:', existingTables);
+        
+        if (existingTables.includes('profiles')) {
+            await pool.query('TRUNCATE TABLE profiles RESTART IDENTITY CASCADE');
+            console.log('✅ Profiles table cleared');
+        } else {
+            console.log('ℹ️ Profiles table does not exist');
+        }
+        
+        if (existingTables.includes('cognito_users')) {
+            await pool.query('TRUNCATE TABLE cognito_users RESTART IDENTITY CASCADE');
+            console.log('✅ Cognito_users table cleared');
+        } else {
+            console.log('ℹ️ Cognito_users table does not exist');
+        }
+        
+        console.log('✅ Database cleanup completed');
         
         // 2. Delete Cognito users
         if (process.env.COGNITO_USER_POOL_ID) {
@@ -80,14 +104,26 @@ const resetDatabase = async () => {
         }
         
         console.log('🎉 Complete reset finished!');
+        console.log('💡 You can now run your application with a clean slate!');
         
     } catch (error) {
         console.error('❌ Reset failed:', error.message);
+        
         if (error.name === 'AccessDeniedException') {
             console.error('💡 Make sure your AWS credentials have Cognito admin permissions');
+        } else if (error.code === 'ECONNREFUSED') {
+            console.error('💡 Database connection failed. Check your DB_HOST and credentials');
+        } else if (error.code === 'NoSuchBucket') {
+            console.error('💡 S3 bucket not found. Check your S3_BUCKET_NAME');
         }
+        
+        console.error('🚑 Reset partially completed. Some resources may need manual cleanup.');
     } finally {
-        await pool.end();
+        try {
+            await pool.end();
+        } catch (poolError) {
+            console.log('Note: Database connection cleanup skipped');
+        }
         process.exit(0);
     }
 };

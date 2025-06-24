@@ -10,12 +10,17 @@ import profileRoutes from './routes/profile.routes.js';
 import uploadRoutes from './routes/upload.routes.js';
 import s3Routes from './routes/s3.routes.js';
 import documentRoutes from './routes/document.routes.js';
+import healthRoutes from './routes/health.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { requestLogger } from './middleware/requestLogger.js';
+import { rateLimiter } from './middleware/rateLimiter.js';
 import pool from './utils/db.js';
 import runMigrations from './utils/run-migrations.js';
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(rateLimiter(100, 15 * 60 * 1000)); // 100 requests per 15 minutes
+app.use(requestLogger);
 
 // ✅ Use base path everywhere
 const basePath = process.env.API_BASE_PATH || '/api';
@@ -35,6 +40,7 @@ app.use(`${basePath}/profile`, profileRoutes);
 app.use(`${basePath}/upload`, uploadRoutes);
 app.use(`${basePath}/s3`, s3Routes);
 app.use(`${basePath}/document`, documentRoutes);
+app.use(`${basePath}/health`, healthRoutes);
 
 // ✅ Error handling middleware (should be after all routes)
 app.use(errorHandler);

@@ -30,6 +30,10 @@ const upload = multer({
 
 // Upload file endpoint - accepts any field name
 router.post('/', authenticateCognito, (req, res, next) => {
+    // Set longer timeout for file uploads
+    req.setTimeout(60000); // 60 seconds
+    res.setTimeout(60000);
+    
     const uploadHandler = upload.any(); // Accept any field name
     
     uploadHandler(req, res, (err) => {
@@ -44,12 +48,21 @@ router.post('/', authenticateCognito, (req, res, next) => {
     });
 }, async (req, res) => {
     try {
+        console.log('📤 Upload request received from user:', req.user.id);
+        
         // Get the first uploaded file regardless of field name
         const file = req.files?.[0];
         
         if (!file) {
+            console.log('❌ No file in request');
             return res.status(400).json({ success: false, error: 'No file uploaded' });
         }
+
+        console.log('📁 File details:', {
+            name: file.originalname,
+            size: file.size,
+            type: file.mimetype
+        });
 
         const userId = req.user.id;
         const fileName = `${userId}/document.${file.originalname.split('.').pop()}`; // Use fixed name
@@ -85,6 +98,7 @@ router.post('/', authenticateCognito, (req, res, next) => {
         }
 
         // Upload to S3
+        console.log('☁️ Uploading to S3...');
         const uploadParams = {
             Bucket: process.env.S3_BUCKET_NAME,
             Key: fileName,
@@ -93,18 +107,21 @@ router.post('/', authenticateCognito, (req, res, next) => {
             ServerSideEncryption: 'AES256'
         };
 
-        await s3Client.send(new PutObjectCommand(uploadParams));
+        const uploadResult = await s3Client.send(new PutObjectCommand(uploadParams));
+        console.log('✅ S3 upload successful:', uploadResult.ETag);
 
         // Generate S3 URL
         const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.S3_REGION}.amazonaws.com/${fileName}`;
 
         // Update existing profile with file URL (don't create new profile)
+        console.log('💾 Updating database...');
         const result = await pool.query(
             `UPDATE profiles SET pdf_url = $1, updated_at = CURRENT_TIMESTAMP 
              WHERE id = $2 
              RETURNING *`,
             [fileUrl, userId]
         );
+        console.log('✅ Database updated successfully');
 
         console.log('✅ File uploaded successfully:', fileName);
         

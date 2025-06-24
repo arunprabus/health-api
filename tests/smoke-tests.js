@@ -114,8 +114,7 @@ const testCreateProfile = async () => {
             name: 'Test User',
             blood_group: 'O+',
             insurance_provider: 'Test Insurance Co',
-            insurance_number: 'TEST123456',
-            pdf_url: 'https://example.com/test-document.pdf'
+            insurance_number: 'TEST123456'
         };
 
         const { response, data } = await makeRequest('/profile', {
@@ -169,8 +168,7 @@ const testUpdateProfile = async () => {
             name: 'Updated Test User',
             blood_group: 'AB+',
             insurance_provider: 'Updated Insurance Co',
-            insurance_number: 'UPDATED123456',
-            pdf_url: 'https://example.com/updated-document.pdf'
+            insurance_number: 'UPDATED123456'
         };
 
         const { response, data } = await makeRequest('/profile', {
