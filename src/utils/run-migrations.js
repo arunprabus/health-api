@@ -10,22 +10,10 @@ async function runMigrations() {
         // Drop all existing tables and constraints to start fresh
         await pool.query(`
             DROP TABLE IF EXISTS profiles CASCADE;
-            DROP TABLE IF EXISTS users CASCADE;
-            DROP TABLE IF EXISTS cognito_users CASCADE;
             DROP SCHEMA IF EXISTS public CASCADE;
             CREATE SCHEMA public;
             GRANT ALL ON SCHEMA public TO postgres;
             GRANT ALL ON SCHEMA public TO public;
-        `);
-
-        // Create cognito_users table for Cognito users
-        await pool.query(`
-            CREATE TABLE cognito_users (
-                id UUID PRIMARY KEY,
-                email VARCHAR(255) UNIQUE NOT NULL,
-                username VARCHAR(255),
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-            )
         `);
 
         // Create profiles table with NO foreign key constraints
@@ -37,7 +25,8 @@ async function runMigrations() {
                 insurance_provider VARCHAR(255),
                 insurance_number VARCHAR(255),
                 pdf_url TEXT,
-                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         `);
 

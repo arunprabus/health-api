@@ -7,6 +7,9 @@ dotenv.config();
 
 import authRoutes from './routes/auth.routes.js';
 import profileRoutes from './routes/profile.routes.js';
+import uploadRoutes from './routes/upload.routes.js';
+import s3Routes from './routes/s3.routes.js';
+import documentRoutes from './routes/document.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import pool from './utils/db.js';
 import runMigrations from './utils/run-migrations.js';
@@ -29,6 +32,9 @@ app.get(`${basePath}/health`, (req, res) => {
 // ✅ Register routes with basePath
 app.use(`${basePath}/auth`, authRoutes);
 app.use(`${basePath}/profile`, profileRoutes);
+app.use(`${basePath}/upload`, uploadRoutes);
+app.use(`${basePath}/s3`, s3Routes);
+app.use(`${basePath}/document`, documentRoutes);
 
 // ✅ Error handling middleware (should be after all routes)
 app.use(errorHandler);
@@ -87,6 +93,19 @@ async function initializeServer() {
         process.exit(1);
     }
 }
+
+// Graceful shutdown handling
+process.on('SIGINT', () => {
+    console.log('\n🛑 Shutting down server gracefully...');
+    pool.end();
+    process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+    console.log('\n🛑 Server terminated gracefully...');
+    pool.end();
+    process.exit(0);
+});
 
 // Initialize server
 initializeServer();
