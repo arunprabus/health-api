@@ -30,7 +30,31 @@ npm install
 2. **Configure environment:**
 ```bash
 cp .env.example .env
-# Edit .env with your database and AWS credentials
+# Edit .env with your values (see Environment Variables table below)
+```
+
+### Sample .env Configuration
+```bash
+# Database Configuration
+DB_HOST=your-db.region.rds.amazonaws.com
+DB_PORT=5432
+DB_NAME=postgres
+DB_USER=postgres
+DB_PASSWORD=your-secure-password
+
+# AWS Configuration
+USE_COGNITO=true
+AWS_REGION=ap-south-1
+COGNITO_USER_POOL_ID=ap-south-1_xxxxxxxxx
+COGNITO_CLIENT_ID=your-client-id
+
+# S3 Configuration
+S3_BUCKET_NAME=your-health-documents
+S3_REGION=ap-south-1
+
+# Application Configuration
+PORT=8080
+NODE_ENV=development
 ```
 
 3. **Start the server:**
@@ -59,19 +83,21 @@ The API will be available at `http://localhost:8080/api`
 
 ## Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `DB_HOST` | PostgreSQL host | ✅ |
-| `DB_PORT` | PostgreSQL port | ✅ |
-| `DB_NAME` | Database name | ✅ |
-| `DB_USER` | Database user | ✅ |
-| `DB_PASSWORD` | Database password | ✅ |
-| `AWS_REGION` | AWS region | ✅ |
-| `COGNITO_USER_POOL_ID` | Cognito User Pool ID | ✅ |
-| `COGNITO_CLIENT_ID` | Cognito App Client ID | ✅ |
-| `S3_BUCKET_NAME` | S3 bucket for documents | ✅ |
-| `S3_REGION` | S3 region | ✅ |
-| `PORT` | Server port (default: 8080) | ❌ |
+| Variable | Description | Example Value | Required |
+|----------|-------------|---------------|----------|
+| `DB_HOST` | PostgreSQL host | `your-db.region.rds.amazonaws.com` | ✅ |
+| `DB_PORT` | PostgreSQL port | `5432` | ✅ |
+| `DB_NAME` | Database name | `postgres` | ✅ |
+| `DB_USER` | Database user | `postgres` | ✅ |
+| `DB_PASSWORD` | Database password | `your-secure-password` | ✅ |
+| `AWS_REGION` | AWS region | `ap-south-1` | ✅ |
+| `COGNITO_USER_POOL_ID` | Cognito User Pool ID | `ap-south-1_xxxxxxxxx` | ✅ |
+| `COGNITO_CLIENT_ID` | Cognito App Client ID | `your-client-id` | ✅ |
+| `S3_BUCKET_NAME` | S3 bucket for documents | `your-health-documents` | ✅ |
+| `S3_REGION` | S3 region | `ap-south-1` | ✅ |
+| `USE_COGNITO` | Enable Cognito auth | `true` | ✅ |
+| `PORT` | Server port | `8080` | ❌ |
+| `NODE_ENV` | Environment | `production` | ❌ |
 
 ## Testing
 
