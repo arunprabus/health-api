@@ -7,8 +7,11 @@ const validateProfile = (req, res, next) => {
     blood_group: Joi.string().required(),
     insurance_provider: Joi.string().required(),
     insurance_number: Joi.string().allow(null, ''),
-    pdf_url: Joi.string().allow(null, '')
-  });
+    pdf_url: Joi.string().allow(null, '').optional(),
+    id: Joi.string().optional(),
+    created_at: Joi.date().optional(),
+    updated_at: Joi.date().optional()
+  }).unknown(false);
 
   const { error } = schema.validate(req.body);
   if (error) {

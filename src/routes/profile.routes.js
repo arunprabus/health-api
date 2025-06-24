@@ -9,20 +9,24 @@ const router = express.Router();
 // 🔐 Require Cognito authentication for all profile routes
 router.use(authenticateCognito);
 
-// ✅ POST /api/profile - Create profile for new user
+// ✅ POST /api/profile - Create profile for new user (without document)
 router.post('/', validateProfile, async (req, res) => {
     try {
         const userId = req.user.id;
-        const { name, blood_group, insurance_provider, insurance_number, pdf_url } = req.body;
+        const { name, blood_group, insurance_provider, insurance_number } = req.body;
 
         const result = await pool.query(
-            `INSERT INTO profiles (id, name, blood_group, insurance_provider, insurance_number, pdf_url)
-             VALUES ($1, $2, $3, $4, $5, $6)
+            `INSERT INTO profiles (id, name, blood_group, insurance_provider, insurance_number)
+             VALUES ($1, $2, $3, $4, $5)
              RETURNING *`,
-            [userId, name, blood_group, insurance_provider, insurance_number, pdf_url]
+            [userId, name, blood_group, insurance_provider, insurance_number]
         );
 
-        res.status(201).json({ success: true, message: 'Profile created successfully', data: result.rows[0] });
+        res.status(201).json({ 
+            success: true, 
+            message: 'Profile created successfully. You can now upload your document.', 
+            data: result.rows[0] 
+        });
     } catch (error) {
         console.error('Error creating profile:', error);
         if (error.code === '23505') { // Duplicate key error
@@ -50,11 +54,11 @@ router.get('/', async (req, res) => {
     }
 });
 
-// ✅ PUT /api/profile - Update logged-in user's profile
+// ✅ PUT /api/profile - Update logged-in user's profile (without document)
 router.put('/', validateProfile, async (req, res) => {
     try {
         const userId = req.user.id;
-        const { name, blood_group, insurance_provider, insurance_number, pdf_url } = req.body;
+        const { name, blood_group, insurance_provider, insurance_number } = req.body;
 
         const result = await pool.query(
             `UPDATE profiles
@@ -62,10 +66,10 @@ router.put('/', validateProfile, async (req, res) => {
            blood_group = $2,
            insurance_provider = $3,
            insurance_number = $4,
-           pdf_url = $5
-       WHERE id = $6
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $5
        RETURNING *`,
-            [name, blood_group, insurance_provider, insurance_number, pdf_url, userId]
+            [name, blood_group, insurance_provider, insurance_number, userId]
         );
 
         if (result.rows.length === 0) {

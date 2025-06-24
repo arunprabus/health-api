@@ -2,10 +2,10 @@ name: Build and Push Health API
 
 on:
   workflow_dispatch:
-#  push:
-#    branches: [ main, develop, test ]
-#  pull_request:
-#    branches: [ main ]
+  push:
+    branches: [ main, develop, test ]
+  pull_request:
+    branches: [ main ]
 
 env:
   REGISTRY: ghcr.io
@@ -14,21 +14,16 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        env: [dev, test, prod]
     
     services:
-      mysql:
-        image: mysql:8.0
+      postgres:
+        image: postgres:15
         env:
-          MYSQL_ROOT_PASSWORD: rootpassword
-          MYSQL_DATABASE: health_app_${{ matrix.env }}
-          MYSQL_USER: health_user
-          MYSQL_PASSWORD: health_password
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: health_api_test
         ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
     - name: Checkout repository
@@ -37,22 +32,19 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '18'
         cache: 'npm'
 
     - name: Install dependencies
       run: npm ci
 
-    - name: Run tests
+    - name: Run unit tests
+      working-directory: ./tests
+      run: |
+        npm ci
+        npm test
       env:
-        APP_ENV: ${{ matrix.env }}
-        DB_HOST: localhost
-        DB_PORT: 3306
-        DB_USER: health_user
-        DB_PASSWORD: health_password
-        DB_NAME: health_app_${{ matrix.env }}
-        JWT_SECRET: test-secret-key
-      run: npm test
+        NODE_ENV: test
 
   build-and-push:
     needs: test
@@ -61,20 +53,28 @@ jobs:
       contents: read
       packages: write
 
-    strategy:
-      matrix:
-        env: [dev, test, prod]
-        include:
-          - env: dev
-            branch: develop
-          - env: test
-            branch: test
-          - env: prod
-            branch: main
-
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    - name: Create .env file
+      run: |
+        # Sensitive secrets from GitHub Secrets
+        echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+        echo "COGNITO_USER_POOL_ID=${{ secrets.COGNITO_USER_POOL_ID }}" >> .env
+        echo "COGNITO_CLIENT_ID=${{ secrets.COGNITO_CLIENT_ID }}" >> .env
+        
+        # Non-sensitive variables from GitHub Variables
+        echo "DB_HOST=${{ vars.DB_HOST }}" >> .env
+        echo "DB_PORT=${{ vars.DB_PORT }}" >> .env
+        echo "DB_NAME=${{ vars.DB_NAME }}" >> .env
+        echo "DB_USER=${{ vars.DB_USER }}" >> .env
+        echo "AWS_REGION=${{ vars.AWS_REGION }}" >> .env
+        echo "S3_BUCKET_NAME=${{ vars.S3_BUCKET_NAME }}" >> .env
+        echo "S3_REGION=${{ vars.S3_REGION }}" >> .env
+        echo "USE_COGNITO=${{ vars.USE_COGNITO }}" >> .env
+        echo "PORT=${{ vars.PORT }}" >> .env
+        echo "NODE_ENV=${{ vars.NODE_ENV }}" >> .env
 
     - name: Log in to Container Registry
       if: github.event_name != 'pull_request'
@@ -90,19 +90,17 @@ jobs:
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
-          type=raw,value=${{ matrix.env }}
-          type=raw,value=${{ matrix.env }}-{{sha}}
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
           type=raw,value=latest,enable={{is_default_branch}}
 
     - name: Build and push Docker image
-      if: github.ref == format('refs/heads/{0}', matrix.branch) || github.event_name == 'pull_request'
       uses: docker/build-push-action@v5
       with:
         context: .
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-        build-args: |
-          APP_ENV=${{ matrix.env }}
         cache-from: type=gha
         cache-to: type=gha,mode=max

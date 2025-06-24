@@ -1,0 +1,15 @@
+### Test Upload Endpoint
+POST http://localhost:8080/api/upload/test
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### Test File Upload (replace with actual token)
+POST http://localhost:8080/api/upload
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="file"; filename="test.pdf"
+Content-Type: application/pdf
+
+< ./test-file.pdf
+------WebKitFormBoundary--
