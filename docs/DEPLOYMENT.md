@@ -32,20 +32,7 @@ CREATE DATABASE health_api;
 
 ## Deployment Options
 
-### Docker Compose Deployment (Recommended)
-
-```bash
-# Start the application
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop the application
-docker-compose down
-```
-
-### Manual Docker Deployment
+### Option 1: Docker Deployment
 
 ```bash
 # Build image
@@ -58,6 +45,27 @@ docker run -d \
   --env-file .env \
   health-api
 ```
+
+### Option 2: Kubernetes Deployment
+
+```bash
+# Apply configurations
+kubectl apply -f k8s/secrets.yaml
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/ingress.yaml
+
+# Check deployment
+kubectl get pods
+kubectl get services
+```
+
+### Option 3: AWS ECS Deployment
+
+1. Push image to ECR
+2. Create ECS task definition
+3. Create ECS service
+4. Configure load balancer
 
 ## Environment Variables
 
@@ -97,11 +105,11 @@ The application includes health check endpoints:
 
 ### Logs
 ```bash
-# Docker Compose logs
-docker-compose logs -f
-
-# Individual container logs
+# Docker logs
 docker logs health-api
+
+# Kubernetes logs
+kubectl logs -f deployment/health-api
 ```
 
 ### Metrics
@@ -139,8 +147,9 @@ docker logs health-api
 
 ## Rollback Procedure
 
-1. **Docker Compose:** `docker-compose down && git checkout previous-version && docker-compose up -d`
-2. **Database:** Restore from backup if needed
+1. **Docker:** Use previous image tag
+2. **Kubernetes:** `kubectl rollout undo deployment/health-api`
+3. **Database:** Restore from backup if needed
 
 ## Troubleshooting
 
@@ -170,15 +179,16 @@ docker logs health-api
 
 ```bash
 # Check container status
-docker-compose ps
-docker-compose logs health-api
+docker ps
+docker logs health-api
+
+# Check Kubernetes status
+kubectl describe pod <pod-name>
+kubectl logs <pod-name>
 
 # Test database connection
 psql -h $DB_HOST -U $DB_USER -d $DB_NAME
 
 # Test S3 access
 aws s3 ls s3://$S3_BUCKET_NAME
-
-# Test API health
-curl http://localhost:8080/api/health
 ```
