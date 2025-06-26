@@ -1,6 +1,7 @@
 export default {
   testEnvironment: 'node',
   transform: {},
+  moduleFileExtensions: ['js', 'mjs'],
   testMatch: ['**/tests/unit/**/*.test.js'],
   collectCoverageFrom: [
     'src/**/*.js',
@@ -9,5 +10,8 @@ export default {
     '!src/utils/db.js'
   ],
   coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html']
+  coverageReporters: ['text', 'lcov', 'html'],
+  transformIgnorePatterns: [
+    'node_modules/(?!(@jest)/)'
+  ]
 };

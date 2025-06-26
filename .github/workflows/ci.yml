@@ -45,7 +45,12 @@ jobs:
       run: npm audit --production --audit-level=high || echo "Security audit warnings found"
       
     - name: Run unit tests
-      run: echo "Tests temporarily skipped - will be fixed in a separate PR"
+      working-directory: ./tests
+      run: |
+        npm ci
+        NODE_OPTIONS="--experimental-vm-modules" npm test
+      env:
+        NODE_ENV: test
       
     - name: Generate snapshot tag
       id: image-tag

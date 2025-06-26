@@ -32,8 +32,13 @@ jobs:
     - name: Lint code
       run: npm run lint || echo "Linting skipped - add linting in future"
       
-    - name: Skip tests temporarily
-      run: echo "Tests temporarily skipped - will be fixed in a separate PR"
+    - name: Run unit tests
+      working-directory: ./tests
+      run: |
+        npm ci
+        NODE_OPTIONS="--experimental-vm-modules" npm test
+      env:
+        NODE_ENV: test
       
     - name: Prepare release version
       id: prepare-release
