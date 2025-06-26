@@ -1,5 +1,9 @@
 name: Release Process
 
+permissions:
+  contents: write
+  pull-requests: write
+
 on:
   workflow_dispatch:
     inputs:
@@ -110,4 +114,4 @@ jobs:
         node scripts/set-snapshot-version.js
         git add package.json
         git commit -m "chore: prepare for next development iteration"
-        git push origin main
+        git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
