@@ -9,8 +9,12 @@
     "reset": "node scripts/reset-db.js",
     "check-cognito": "node scripts/check-cognito.js",
     "confirm-user": "node scripts/confirm-user.js",
-    "version:snapshot": "node scripts/set-snapshot-version.js",
-    "version:release": "node scripts/set-release-version.js"
+    "version:snapshot": "node scripts/set-snapshot-version.js minor",
+    "version:snapshot:patch": "node scripts/set-snapshot-version.js patch",
+    "version:snapshot:minor": "node scripts/set-snapshot-version.js minor",
+    "version:snapshot:major": "node scripts/set-snapshot-version.js major",
+    "version:release": "node scripts/set-release-version.js",
+    "feature": "node scripts/create-feature-branch.js"
   },
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.830.0",

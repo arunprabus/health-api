@@ -124,27 +124,61 @@ node scripts/reset-db.js
 
 ## Release Process
 
-This project follows a Maven-like release process with development snapshots and release branches:
+This project follows a Maven-like release process with development snapshots and feature branches:
 
 ### Branch Structure
-- `develop` - Development branch with SNAPSHOT versions
-- `main` - Stable branch with released versions
-- `release/*` - Temporary release branches
+- `fet-*` - Feature branches with SNAPSHOT versions (e.g., `fet-docker-build-push`)
+- `main` - Release branch with stable versions
 
-### Version Lifecycle
-1. Development happens on `develop` branch with `-SNAPSHOT` suffix
-2. Release process creates a `release/YYYYMMDD` branch
-3. SNAPSHOT suffix is removed for release
-4. After release, main branch gets next SNAPSHOT version
+### Release Instructions
 
-### Commands
+1. **Development Phase**:
+   - Create a feature branch with prefix `fet-*` from main
+   - Work on your feature with SNAPSHOT version in package.json
+   - Commit and push changes to your feature branch
+
+2. **Prepare for Release**:
+   - Complete feature development and testing
+   - Create a pull request from your feature branch to main
+   - The PR workflow will automatically remove the SNAPSHOT suffix and update your branch
+
+3. **Release Process**:
+   - Merge the approved pull request to main
+   - GitHub Actions will automatically:
+     - Create a release tag based on the version
+     - Build and push Docker images with version tag
+     - Update version to next SNAPSHOT for future development
+
+4. **Start Next Development Cycle**:
+   - Create a new feature branch from updated main
+   - Continue development with the new SNAPSHOT version
+
+### Version Commands
 ```bash
-# Set next snapshot version
+# Create a new feature branch
+npm run feature my-new-feature
+
+# Set next snapshot version (increments minor version by default)
 npm run version:snapshot
+
+# Set next snapshot version with specific increment type
+npm run version:snapshot:patch  # Increment patch version
+npm run version:snapshot:minor  # Increment minor version
+npm run version:snapshot:major  # Increment major version
 
 # Set release version (removes SNAPSHOT suffix)
 npm run version:release
 ```
+
+### Manual Release Trigger
+You can also manually trigger a release from GitHub Actions:
+1. Go to the Actions tab in GitHub
+2. Select "Release Process" workflow
+3. Click "Run workflow"
+4. Select release type (patch, minor, major)
+5. Click "Run workflow"
+
+This will create a release with the specified version increment.
 
 ## Docker Deployment
 
