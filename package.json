@@ -1,6 +1,6 @@
 {
   "name": "health-api",
-  "version": "1.0.0",
+  "version": "1.0.0-SNAPSHOT",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
@@ -8,7 +8,9 @@
     "reset-db": "node scripts/reset-db.js",
     "reset": "node scripts/reset-db.js",
     "check-cognito": "node scripts/check-cognito.js",
-    "confirm-user": "node scripts/confirm-user.js"
+    "confirm-user": "node scripts/confirm-user.js",
+    "version:snapshot": "node scripts/set-snapshot-version.js",
+    "version:release": "node scripts/set-release-version.js"
   },
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.830.0",
