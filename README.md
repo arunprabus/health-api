@@ -122,6 +122,30 @@ reset-db.bat
 node scripts/reset-db.js
 ```
 
+## Release Process
+
+This project follows a Maven-like release process with development snapshots and release branches:
+
+### Branch Structure
+- `develop` - Development branch with SNAPSHOT versions
+- `main` - Stable branch with released versions
+- `release/*` - Temporary release branches
+
+### Version Lifecycle
+1. Development happens on `develop` branch with `-SNAPSHOT` suffix
+2. Release process creates a `release/YYYYMMDD` branch
+3. SNAPSHOT suffix is removed for release
+4. After release, main branch gets next SNAPSHOT version
+
+### Commands
+```bash
+# Set next snapshot version
+npm run version:snapshot
+
+# Set release version (removes SNAPSHOT suffix)
+npm run version:release
+```
+
 ## Docker Deployment
 
 ```bash
