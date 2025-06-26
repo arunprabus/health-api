@@ -42,7 +42,7 @@ jobs:
       working-directory: ./tests
       run: |
         npm ci
-        NODE_OPTIONS="--experimental-vm-modules" npm test
+        npm test
       env:
         NODE_ENV: test
 
