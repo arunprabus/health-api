@@ -51,7 +51,11 @@ try {
   
   if (branchName === 'main') {
     console.log('On main branch - remember to create a new feature branch for development');
+<<<<<<< main-conflict-fix
     console.log('Example: npm run feature my-new-feature');
+=======
+    console.log('Example: git checkout -b fet-new-feature');
+>>>>>>> latest-master
   }
 } catch (error) {
   console.log('Could not determine current branch');

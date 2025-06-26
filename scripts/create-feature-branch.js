@@ -34,8 +34,9 @@ function createFeatureBranch(featureName) {
     console.log(`\nFeature branch ${branchName} created successfully!`);
     console.log('\nNext steps:');
     console.log('1. Make your changes');
-    console.log('2. When ready to create a PR, create a pull request to main');
-    console.log('3. The PR workflow will automatically update the version');
+    console.log('2. When ready to create a PR, run: npm run version:release');
+    console.log('3. Commit the version change and push to GitHub');
+    console.log('4. Create a pull request to main');
   } catch (error) {
     console.error('Error creating feature branch:', error.message);
     process.exit(1);
