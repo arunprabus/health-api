@@ -4,6 +4,13 @@ on:
   pull_request:
     branches: [main]
 
+<<<<<<< main-conflict-fix
+permissions:
+  contents: write
+  pull-requests: write
+
+=======
+>>>>>>> latest-master
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -14,6 +21,11 @@ jobs:
       with:
         ref: ${{ github.head_ref }}
         fetch-depth: 0
+<<<<<<< main-conflict-fix
+        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: true
+=======
+>>>>>>> latest-master
       
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -42,7 +54,11 @@ jobs:
           echo "Updated version to $NEW_VERSION"
           git add package.json
           git commit -m "chore: prepare release version $NEW_VERSION"
+<<<<<<< main-conflict-fix
+          git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:${{ github.head_ref }}
+=======
           git push origin ${{ github.head_ref }}
+>>>>>>> latest-master
           echo "version-updated=true" >> $GITHUB_OUTPUT
         else
           echo "Version $VERSION is already a release version"
