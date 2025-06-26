@@ -44,6 +44,16 @@ jobs:
     - name: Run security audit
       run: npm audit --production --audit-level=high || echo "Security audit warnings found"
       
+    - name: Create test environment file
+      run: |
+        echo "COGNITO_USER_POOL_ID=${{ secrets.COGNITO_USER_POOL_ID }}" > .env.test
+        echo "COGNITO_CLIENT_ID=${{ secrets.COGNITO_CLIENT_ID }}" >> .env.test
+        echo "AWS_REGION=us-east-1" >> .env.test
+        echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env.test
+        echo "DB_USER=${{ secrets.DB_USER }}" >> .env.test
+        echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env.test
+        echo "NODE_ENV=test" >> .env.test
+        
     - name: Run unit tests
       working-directory: ./tests
       run: |
@@ -51,6 +61,9 @@ jobs:
         NODE_OPTIONS="--experimental-vm-modules" npm test
       env:
         NODE_ENV: test
+        COGNITO_USER_POOL_ID: ${{ secrets.COGNITO_USER_POOL_ID }}
+        COGNITO_CLIENT_ID: ${{ secrets.COGNITO_CLIENT_ID }}
+        AWS_REGION: us-east-1
       
     - name: Generate snapshot tag
       id: image-tag

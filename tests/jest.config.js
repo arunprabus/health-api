@@ -2,6 +2,7 @@ export default {
   testEnvironment: 'node',
   transform: {},
   moduleFileExtensions: ['js', 'mjs'],
+  setupFilesAfterEnv: ['./jest.setup.js'],
   testMatch: ['**/tests/unit/**/*.test.js'],
   collectCoverageFrom: [
     'src/**/*.js',

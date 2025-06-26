@@ -1,6 +1,8 @@
 module.exports = {
   testEnvironment: 'node',
   transform: {},
+  moduleFileExtensions: ['js', 'mjs'],
+  setupFilesAfterEnv: ['./jest.setup.cjs'],
   testMatch: ['**/tests/unit/**/*.test.js'],
   collectCoverageFrom: [
     'src/**/*.js',
@@ -9,5 +11,8 @@ module.exports = {
     '!src/utils/db.js'
   ],
   coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html']
+  coverageReporters: ['text', 'lcov', 'html'],
+  transformIgnorePatterns: [
+    'node_modules/(?!(@jest)/)'
+  ]
 };
