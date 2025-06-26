@@ -23,8 +23,9 @@ env:
   DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
     
     steps:
     - name: Checkout code
@@ -53,12 +54,6 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
-
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
 
     - name: Set image tag
       run: |
@@ -114,6 +109,8 @@ jobs:
         # Cleanup
         rm -rf k8s-temp
         
+    - name: Deployment summary
+      run: |
         echo "🚀 Deployment completed!"
         echo "Environment: ${{ env.ENVIRONMENT }}"
         echo "Version: ${{ env.VERSION }}"
