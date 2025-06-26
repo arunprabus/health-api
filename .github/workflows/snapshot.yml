@@ -1,10 +1,7 @@
 name: Feature Branch Build
-<<<<<<< main-conflict-fix
 
 permissions:
   contents: read
-=======
->>>>>>> latest-master
 
 on:
   push:
