@@ -2,8 +2,6 @@ name: Build and Push Health API
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main, develop, test ]
   pull_request:
     branches: [ main ]
 

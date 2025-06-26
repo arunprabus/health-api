@@ -16,10 +16,6 @@ on:
           - patch
           - minor
           - major
-  push:
-    branches: [main]
-    paths:
-      - 'package.json'
 
 jobs:
   prepare-release:
