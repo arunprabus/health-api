@@ -1,8 +1,8 @@
-name: Snapshot Build
+name: Feature Branch Build
 
 on:
   push:
-    branches: [develop]
+    branches: ['fet-*']
 
 jobs:
   build-snapshot:
@@ -11,6 +11,13 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      
+    - name: Extract branch name
+      id: extract-branch
+      run: |
+        BRANCH_NAME=${GITHUB_REF#refs/heads/}
+        FEATURE_NAME=${BRANCH_NAME#fet-}
+        echo "feature-name=$FEATURE_NAME" >> $GITHUB_OUTPUT
       
     - name: Extract version
       id: extract-version
@@ -36,5 +43,5 @@ jobs:
         push: true
         tags: |
           ${{ secrets.DOCKER_USERNAME }}/health-api:${{ steps.extract-version.outputs.snapshot-version }}
-          ${{ secrets.DOCKER_USERNAME }}/health-api:snapshot
+          ${{ secrets.DOCKER_USERNAME }}/health-api:${{ steps.extract-branch.outputs.feature-name }}-snapshot
         platforms: linux/amd64,linux/arm64

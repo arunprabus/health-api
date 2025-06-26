@@ -1,0 +1,51 @@
+name: Pull Request Validation
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.head_ref }}
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run tests
+      run: |
+        cd tests
+        npm ci
+        npm test
+        
+    - name: Check if version is SNAPSHOT and update
+      id: check-version
+      run: |
+        VERSION=$(node -p "require('./package.json').version")
+        if [[ $VERSION == *"-SNAPSHOT"* ]]; then
+          echo "Version $VERSION contains SNAPSHOT suffix, updating to release version"
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          npm run version:release
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "Updated version to $NEW_VERSION"
+          git add package.json
+          git commit -m "chore: prepare release version $NEW_VERSION"
+          git push origin ${{ github.head_ref }}
+          echo "version-updated=true" >> $GITHUB_OUTPUT
+        else
+          echo "Version $VERSION is already a release version"
+          echo "version-updated=false" >> $GITHUB_OUTPUT
+        fi
