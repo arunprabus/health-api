@@ -1,12 +1,6 @@
 export default {
   testEnvironment: 'node',
-  transform: {},
-  extensionsToTreatAsEsm: ['.js'],
-  globals: {
-    'ts-jest': {
-      useESM: true
-    }
-  },
+  preset: 'default',
   testMatch: ['**/tests/unit/**/*.test.js'],
   collectCoverageFrom: [
     'src/**/*.js',
