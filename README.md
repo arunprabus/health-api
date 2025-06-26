@@ -140,8 +140,7 @@ This project follows a Maven-like release process with development snapshots and
 2. **Prepare for Release**:
    - Complete feature development and testing
    - Create a pull request from your feature branch to main
-   - Run `npm run version:release` to remove SNAPSHOT suffix
-   - Commit the version change and push to your feature branch
+   - The PR workflow will automatically remove the SNAPSHOT suffix and update your branch
 
 3. **Release Process**:
    - Merge the approved pull request to main
