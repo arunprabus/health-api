@@ -1,4 +1,4 @@
-name: Build and Push Health API
+name: CI Pipeline
 
 on:
   workflow_dispatch:
@@ -44,61 +44,77 @@ jobs:
       env:
         NODE_ENV: test
 
-  build-and-push:
+  build-snapshot:
     needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    outputs:
+      image-tag: ${{ steps.image-tag.outputs.tag }}
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Create .env file
+    - name: Generate snapshot tag
+      id: image-tag
       run: |
-        # Sensitive secrets from GitHub Secrets
-        echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-        echo "COGNITO_USER_POOL_ID=${{ secrets.COGNITO_USER_POOL_ID }}" >> .env
-        echo "COGNITO_CLIENT_ID=${{ secrets.COGNITO_CLIENT_ID }}" >> .env
-        
-        # Non-sensitive variables from GitHub Variables
-        echo "DB_HOST=${{ vars.DB_HOST }}" >> .env
-        echo "DB_PORT=${{ vars.DB_PORT }}" >> .env
-        echo "DB_NAME=${{ vars.DB_NAME }}" >> .env
-        echo "DB_USER=${{ vars.DB_USER }}" >> .env
-        echo "AWS_REGION=${{ vars.AWS_REGION }}" >> .env
-        echo "S3_BUCKET_NAME=${{ vars.S3_BUCKET_NAME }}" >> .env
-        echo "S3_REGION=${{ vars.S3_REGION }}" >> .env
-        echo "USE_COGNITO=${{ vars.USE_COGNITO }}" >> .env
-        echo "PORT=${{ vars.PORT }}" >> .env
-        echo "NODE_ENV=${{ vars.NODE_ENV }}" >> .env
+        VERSION=$(node -p "require('./package.json').version")
+        TIMESTAMP=$(date +'%Y%m%d%H%M%S')
+        TAG="${VERSION}-${TIMESTAMP}"
+        echo "tag=$TAG" >> $GITHUB_OUTPUT
 
     - name: Log in to Container Registry
-      if: github.event_name != 'pull_request'
       uses: docker/login-action@v3
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
-
-    - name: Build and push Docker image
+    - name: Build and push snapshot image
       uses: docker/build-push-action@v5
       with:
         context: .
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+        push: true
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.image-tag.outputs.tag }}
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:snapshot
         cache-from: type=gha
         cache-to: type=gha,mode=max
+
+  smoke-tests:
+    needs: build-snapshot
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: health_api_test
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run smoke tests
+      working-directory: ./tests
+      run: |
+        npm ci
+        node smoke-tests.js
+      env:
+        NODE_ENV: test
+        IMAGE_TAG: ${{ needs.build-snapshot.outputs.image-tag }}

@@ -1,22 +1,25 @@
-name: Build and Deploy to EKS
+name: Deploy to Environment
 
 on:
   workflow_dispatch:
     inputs:
+      release_tag:
+        description: 'Release tag to deploy (e.g., v1.0.0)'
+        required: true
+        type: string
       environment:
         description: 'Environment to deploy to'
-        required: false
-        default: 'auto'
+        required: true
         type: choice
         options:
-        - auto
         - dev
         - prod
 
 env:
   AWS_REGION: ap-south-1
   EKS_CLUSTER_NAME: health-api-cluster
-  ECR_REPOSITORY: health-api
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
   DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
 
 jobs:
@@ -29,25 +32,19 @@ jobs:
 
     - name: Set environment variables
       run: |
-        if [ "${{ github.event.inputs.environment }}" = "auto" ]; then
-          if [ "${{ github.ref_name }}" = "master" ] || [ "${{ github.ref_name }}" = "main" ]; then
-            echo "ENVIRONMENT=prod" >> $GITHUB_ENV
-            echo "NAMESPACE=production" >> $GITHUB_ENV
-            echo "APP_URL=${{ env.DOMAIN_NAME }}" >> $GITHUB_ENV
-          else
-            echo "ENVIRONMENT=dev" >> $GITHUB_ENV
-            echo "NAMESPACE=dev-${{ github.ref_name }}" >> $GITHUB_ENV
-            echo "APP_URL=${{ github.ref_name }}.${{ env.DOMAIN_NAME }}" >> $GITHUB_ENV
-          fi
+        ENVIRONMENT="${{ github.event.inputs.environment }}"
+        RELEASE_TAG="${{ github.event.inputs.release_tag }}"
+        VERSION=${RELEASE_TAG#v}
+        
+        echo "ENVIRONMENT=$ENVIRONMENT" >> $GITHUB_ENV
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        
+        if [ "$ENVIRONMENT" = "prod" ]; then
+          echo "NAMESPACE=production" >> $GITHUB_ENV
+          echo "APP_URL=${{ env.DOMAIN_NAME }}" >> $GITHUB_ENV
         else
-          echo "ENVIRONMENT=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
-          if [ "${{ github.event.inputs.environment }}" = "prod" ]; then
-            echo "NAMESPACE=production" >> $GITHUB_ENV
-            echo "APP_URL=${{ env.DOMAIN_NAME }}" >> $GITHUB_ENV
-          else
-            echo "NAMESPACE=dev-${{ github.ref_name }}" >> $GITHUB_ENV
-            echo "APP_URL=${{ github.ref_name }}.${{ env.DOMAIN_NAME }}" >> $GITHUB_ENV
-          fi
+          echo "NAMESPACE=development" >> $GITHUB_ENV
+          echo "APP_URL=dev.${{ env.DOMAIN_NAME }}" >> $GITHUB_ENV
         fi
 
     - name: Configure AWS credentials
@@ -57,20 +54,16 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Build, tag, and push image to Amazon ECR
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+    - name: Set image tag
       run: |
-        IMAGE_TAG="${{ github.sha }}-${{ env.ENVIRONMENT }}"
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ env.ENVIRONMENT }}-latest .
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ env.ENVIRONMENT }}-latest
-        echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+        echo "IMAGE_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}" >> $GITHUB_ENV
 
     - name: Install kubectl
       uses: azure/setup-kubectl@v3
@@ -96,14 +89,12 @@ jobs:
           --dry-run=client -o yaml | kubectl apply -f -
 
     - name: Deploy to EKS
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
       run: |
         # Create temporary deployment files with environment-specific values
         cp -r k8s k8s-temp
         
         # Update image and names in deployment files
-        sed -i "s|health-api:latest|$ECR_REGISTRY/$ECR_REPOSITORY:${{ env.IMAGE_TAG }}|g" k8s-temp/deployment.yaml
+        sed -i "s|health-api:latest|${{ env.IMAGE_TAG }}|g" k8s-temp/deployment.yaml
         sed -i "s|name: health-api|name: health-api-${{ env.ENVIRONMENT }}|g" k8s-temp/deployment.yaml
         sed -i "s|app: health-api|app: health-api-${{ env.ENVIRONMENT }}|g" k8s-temp/deployment.yaml
         
@@ -126,5 +117,6 @@ jobs:
         
         echo "🚀 Deployment completed!"
         echo "Environment: ${{ env.ENVIRONMENT }}"
+        echo "Version: ${{ env.VERSION }}"
         echo "Namespace: ${{ env.NAMESPACE }}"
         echo "URL: https://${{ env.APP_URL }}/api/health"
