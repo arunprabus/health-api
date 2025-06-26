@@ -18,8 +18,8 @@ on:
 env:
   AWS_REGION: ap-south-1
   EKS_CLUSTER_NAME: health-api-cluster
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  REGISTRY: docker.io
+  IMAGE_NAME: arunprabusiva/health-api
   DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
 
 jobs:
@@ -54,12 +54,11 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
-    - name: Log in to Container Registry
+    - name: Log in to Docker Hub
       uses: docker/login-action@v3
       with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
 
     - name: Set image tag
       run: |

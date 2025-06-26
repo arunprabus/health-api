@@ -8,8 +8,8 @@ on:
     branches: [ main ]
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  REGISTRY: docker.io
+  IMAGE_NAME: arunprabusiva/health-api
 
 jobs:
   test:
@@ -52,12 +52,11 @@ jobs:
         TAG="${VERSION}-${TIMESTAMP}"
         echo "tag=$TAG" >> $GITHUB_OUTPUT
 
-    - name: Log in to Container Registry
+    - name: Log in to Docker Hub
       uses: docker/login-action@v3
       with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
