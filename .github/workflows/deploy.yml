@@ -1,118 +1,85 @@
-name: Deploy to Environment
+name: Build and Deploy Health API
 
 on:
+  push:
+    branches: [main, develop]
   workflow_dispatch:
-    inputs:
-      release_tag:
-        description: 'Release tag to deploy (e.g., v1.0.0)'
-        required: true
-        type: string
-      environment:
-        description: 'Environment to deploy to'
-        required: true
-        type: choice
-        options:
-        - dev
-        - prod
 
 env:
-  AWS_REGION: ap-south-1
-  EKS_CLUSTER_NAME: health-api-cluster
-  REGISTRY: docker.io
-  IMAGE_NAME: arunprabusiva/health-api
-  DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment }}
-    
+    permissions:
+      contents: read
+      packages: write
+
     steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set environment variables
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+    - name: Determine environment
+      id: env
       run: |
-        ENVIRONMENT="${{ github.event.inputs.environment }}"
-        RELEASE_TAG="${{ github.event.inputs.release_tag }}"
-        VERSION=${RELEASE_TAG#v}
-        
-        echo "ENVIRONMENT=$ENVIRONMENT" >> $GITHUB_ENV
-        echo "VERSION=$VERSION" >> $GITHUB_ENV
-        
-        if [ "$ENVIRONMENT" = "prod" ]; then
-          echo "NAMESPACE=production" >> $GITHUB_ENV
-          echo "APP_URL=${{ env.DOMAIN_NAME }}" >> $GITHUB_ENV
+        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          echo "environment=prod" >> $GITHUB_OUTPUT
+        elif [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
+          echo "environment=test" >> $GITHUB_OUTPUT
         else
-          echo "NAMESPACE=development" >> $GITHUB_ENV
-          echo "APP_URL=dev.${{ env.DOMAIN_NAME }}" >> $GITHUB_ENV
+          echo "environment=dev" >> $GITHUB_OUTPUT
         fi
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
-
-    - name: Set image tag
+    - name: Trigger Infrastructure Deployment
       run: |
-        echo "IMAGE_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}" >> $GITHUB_ENV
+        curl -X POST \
+          -H "Authorization: token ${{ secrets.INFRA_REPO_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Content-Type: application/json" \
+          https://api.github.com/repos/${{ github.repository_owner }}/dev2prod-healthapp/dispatches \
+          -d '{
+            "event_type": "app-deploy",
+            "client_payload": {
+              "app": "health-api",
+              "image": "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ github.sha }}",
+              "environment": "${{ steps.env.outputs.environment }}",
+              "commit": "${{ github.sha }}",
+              "actor": "${{ github.actor }}"
+            }
+          }'
 
-    - name: Install kubectl
-      uses: azure/setup-kubectl@v3
-      with:
-        version: 'v1.28.0'
-
-    - name: Update kube config
-      run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
-
-    - name: Create namespace
+    - name: Deployment Summary
       run: |
-        kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
-
-    - name: Create Kubernetes secrets
-      run: |
-        kubectl create secret generic health-api-secrets \
-          --namespace=${{ env.NAMESPACE }} \
-          --from-literal=cognito-user-pool-id="${{ secrets.COGNITO_USER_POOL_ID }}" \
-          --from-literal=cognito-client-id="${{ secrets.COGNITO_CLIENT_ID }}" \
-          --from-literal=db-host="${{ secrets.DB_HOST }}" \
-          --from-literal=db-user="${{ secrets.DB_USER }}" \
-          --from-literal=db-password="${{ secrets.DB_PASSWORD }}" \
-          --dry-run=client -o yaml | kubectl apply -f -
-
-    - name: Deploy to EKS
-      run: |
-        # Create temporary deployment files with environment-specific values
-        cp -r k8s k8s-temp
-        
-        # Update image and names in deployment files
-        sed -i "s|health-api:latest|${{ env.IMAGE_TAG }}|g" k8s-temp/deployment.yaml
-        sed -i "s|name: health-api|name: health-api-${{ env.ENVIRONMENT }}|g" k8s-temp/deployment.yaml
-        sed -i "s|app: health-api|app: health-api-${{ env.ENVIRONMENT }}|g" k8s-temp/deployment.yaml
-        
-        # Update service
-        sed -i "s|name: health-api-service|name: health-api-service-${{ env.ENVIRONMENT }}|g" k8s-temp/service.yaml
-        sed -i "s|app: health-api|app: health-api-${{ env.ENVIRONMENT }}|g" k8s-temp/service.yaml
-        
-        # Update ingress with environment-specific host
-        sed -i "s|name: health-api-ingress|name: health-api-ingress-${{ env.ENVIRONMENT }}|g" k8s-temp/ingress.yaml
-        sed -i "s|name: health-api-service|name: health-api-service-${{ env.ENVIRONMENT }}|g" k8s-temp/ingress.yaml
-        sed -i "s|rules:|rules:\n  - host: ${{ env.APP_URL }}|g" k8s-temp/ingress.yaml
-        sed -i "s|- http:|    http:|g" k8s-temp/ingress.yaml
-        
-        # Apply to specific namespace
-        kubectl apply -f k8s-temp/ --namespace=${{ env.NAMESPACE }}
-        kubectl rollout status deployment/health-api-${{ env.ENVIRONMENT }} --namespace=${{ env.NAMESPACE }}
-        
-        # Cleanup
-        rm -rf k8s-temp
-        
-    - name: Deployment summary
-      run: |
-        echo "🚀 Deployment completed!"
-        echo "Environment: ${{ env.ENVIRONMENT }}"
-        echo "Version: ${{ env.VERSION }}"
-        echo "Namespace: ${{ env.NAMESPACE }}"
-        echo "URL: https://${{ env.APP_URL }}/api/health"
+        echo "## 🚀 Deployment Triggered" >> $GITHUB_STEP_SUMMARY
+        echo "* Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "* Environment: ${{ steps.env.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        echo "* Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "* Triggered by: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Check the [Infrastructure Repository](https://github.com/${{ github.repository_owner }}/dev2prod-healthapp/actions) for deployment status." >> $GITHUB_STEP_SUMMARY
