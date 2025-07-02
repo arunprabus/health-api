@@ -99,3 +99,33 @@ jobs:
         context: .
         push: true
         tags: ${{ steps.meta.outputs.tags }}
+        
+    - name: Determine environment
+      id: env
+      run: |
+        BRANCH=${GITHUB_REF##*/}
+        if [[ "$BRANCH" == "main" ]]; then
+          echo "environment=prod" >> $GITHUB_OUTPUT
+        elif [[ "$BRANCH" == "staging" ]]; then
+          echo "environment=test" >> $GITHUB_OUTPUT
+        else
+          echo "environment=dev" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Trigger deployment
+      run: |
+        curl -X POST \
+          -H "Authorization: token ${{ secrets.INFRA_REPO_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Content-Type: application/json" \
+          https://api.github.com/repos/${{ github.repository_owner }}/dev2prod-healthapp/dispatches \
+          -d '{
+            "event_type": "app-deploy",
+            "client_payload": {
+              "app": "health-api",
+              "image": "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest",
+              "environment": "${{ steps.env.outputs.environment }}",
+              "commit": "${{ github.sha }}",
+              "actor": "${{ github.actor }}"
+            }
+          }'
