@@ -1,8 +1,6 @@
 name: Build and Deploy Health API
 
 on:
-  push:
-    branches: [main, develop]
   workflow_dispatch:
 
 env:

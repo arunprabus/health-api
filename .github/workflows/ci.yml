@@ -1,10 +1,6 @@
 name: CI Pipeline
 
 on:
-  # push:
-  #   branches: [ main, 'fet-*' ]
-  # pull_request:
-  #   branches: [ main ]
   workflow_dispatch:
 
 env:
@@ -59,7 +55,6 @@ jobs:
   docker-build:
     needs: build-and-test
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
     permissions:
       contents: read
     
