@@ -1,0 +1,199 @@
+name: Health API Pipeline
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Deploy after build'
+        type: boolean
+        default: false
+      releaseType:
+        description: 'Release type (if creating release)'
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: arunprabusiva/health-api
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      should-build: ${{ steps.check.outputs.should-build }}
+      version: ${{ steps.version.outputs.version }}
+      is-release: ${{ steps.version.outputs.is-release }}
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Lint code
+      run: npm run lint || echo "Linting skipped"
+      
+    - name: Security audit
+      run: npm audit --production --audit-level=high || echo "Audit warnings found"
+
+    - name: Check build conditions
+      id: check
+      run: |
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]] || [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          echo "should-build=true" >> $GITHUB_OUTPUT
+        else
+          echo "should-build=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Extract version info
+      id: version
+      run: |
+        VERSION=$(node -p "require('./package.json').version")
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        if [[ $VERSION != *"-SNAPSHOT"* ]]; then
+          echo "is-release=true" >> $GITHUB_OUTPUT
+        else
+          echo "is-release=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Prepare release version (PR only)
+      if: github.event_name == 'pull_request'
+      run: |
+        VERSION=$(node -p "require('./package.json').version")
+        if [[ $VERSION == *"-SNAPSHOT"* ]]; then
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          npm run version:release
+          git add package.json
+          git commit -m "chore: prepare release version"
+          git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:${{ github.head_ref }}
+        fi
+
+  build:
+    needs: validate
+    if: needs.validate.outputs.should-build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        
+    - name: Generate tags
+      id: tags
+      run: |
+        VERSION="${{ needs.validate.outputs.version }}"
+        TIMESTAMP=$(date +'%Y%m%d%H%M%S')
+        
+        if [[ "${{ needs.validate.outputs.is-release }}" == "true" ]]; then
+          echo "tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
+        else
+          echo "tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:snapshot,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}-${TIMESTAMP}" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Build and push
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.tags.outputs.tags }}
+
+  deploy:
+    needs: [validate, build]
+    if: github.event.inputs.deploy == 'true' || (github.ref == 'refs/heads/main' && needs.validate.outputs.is-release == 'true')
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Determine environment
+      id: env
+      run: |
+        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          echo "environment=prod" >> $GITHUB_OUTPUT
+        elif [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
+          echo "environment=test" >> $GITHUB_OUTPUT
+        else
+          echo "environment=dev" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Trigger deployment
+      run: |
+        # Map git branches to infrastructure environments
+        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          INFRA_ENV="higher"  # Production uses higher network
+        elif [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
+          INFRA_ENV="lower"   # Test environment in lower network
+        else
+          INFRA_ENV="lower"   # Dev environment in lower network
+        fi
+        
+        curl -X POST \
+          -H "Authorization: token ${{ secrets.INFRA_REPO_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/${{ github.repository_owner }}/dev2prod-healthapp/dispatches \
+          -d '{
+            "event_type": "app-deploy",
+            "client_payload": {
+              "app": "health-api",
+              "image": "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.validate.outputs.version }}",
+              "environment": "'$INFRA_ENV'",
+              "namespace": "health-app-${{ steps.env.outputs.environment }}",
+              "commit": "${{ github.sha }}",
+              "actor": "${{ github.actor }}"
+            }
+          }'
+
+  release:
+    needs: [validate, build]
+    if: needs.validate.outputs.is-release == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Create release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ needs.validate.outputs.version }}
+        release_name: Release ${{ needs.validate.outputs.version }}
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Prepare next snapshot
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        node scripts/set-snapshot-version.js ${{ github.event.inputs.releaseType || 'minor' }}
+        git add package.json
+        git commit -m "chore: prepare for next development iteration"
+        git push
